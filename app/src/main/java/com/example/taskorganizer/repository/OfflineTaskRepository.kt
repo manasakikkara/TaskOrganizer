@@ -30,5 +30,9 @@ class OfflineTaskRepository(var taskDao: TaskDao):TaskRepository {
     override suspend fun getSelectedCategoryTasks(selectedCategory: Category): Flow<List<Task>>
         = taskDao.getSelectedCategoryTasks(selectedCategory)
 
+    override suspend fun getTasksOnSelectedDate(selectedDate: String): Flow<List<Task>>
+        = taskDao.getTasksOnSelectedDate(selectedDate)
+
+
 
 }
