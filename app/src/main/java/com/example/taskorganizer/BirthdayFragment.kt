@@ -12,7 +12,8 @@ import com.example.taskorganizer.databinding.AllFragmentBinding
 
 class BirthdayFragment: AllFragment() {
 
-
+    private var _binding:AllFragmentBinding?= null
+    private val binding get() = _binding!!
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
