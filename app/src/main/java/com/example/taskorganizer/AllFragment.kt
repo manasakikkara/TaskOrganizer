@@ -25,13 +25,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
-import androidx.compose.material3.DismissValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -51,23 +49,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
-import com.example.taskorganizer.data.Status
 import com.example.taskorganizer.data.Task
+import com.example.taskorganizer.databinding.AllFragmentBinding
+import com.google.android.material.R
+import com.google.android.material.behavior.SwipeDismissBehavior
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 
 
 open class AllFragment: Fragment() {
 
-
-
+    private var _binding:AllFragmentBinding?= null
+    private val binding get() = _binding!!
     @SuppressLint("CoroutineCreationDuringComposition")
     lateinit  var removeTaskListener:ActivityViewModel.RemoveTaskListener
 
@@ -95,7 +92,7 @@ open class AllFragment: Fragment() {
     fun getListFromBundle(tasksList:ArrayList<Task>?){
         tasksList?.let {
             if (it.isNotEmpty()) {
-                LazyColumn(userScrollEnabled = true) {
+                LazyColumn {
                     items(it) {task->
                         loadCardView(task = task)
                     }
@@ -108,7 +105,7 @@ open class AllFragment: Fragment() {
 
 
 
-    @SuppressLint("CoroutineCreationDuringComposition", "SuspiciousIndentation")
+    @SuppressLint("CoroutineCreationDuringComposition")
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
       fun loadCardView(task: Task) {
@@ -118,60 +115,23 @@ open class AllFragment: Fragment() {
         var isTaskRemoved by remember {
             mutableStateOf(false)
         }
-        var isFromDatabase = false
-        var currentFraction by remember{
-            mutableStateOf(0f)
-        }
-        var dismissThreshold = 0.25f
        
-        val dismissState = rememberDismissState(initialValue = DismissValue.Default,
-                                       confirmValueChange = {
-                                           if(it == DismissValue.DismissedToStart ){
-                                               if(currentFraction>dismissThreshold){
-
-                                               }
-                                               //isTaskRemoved = true
-
-                                           }
-
-
-                                           true
-                                       }, positionalThreshold = {
-
-                1500.dp.toPx()
-
+        val dismissState = rememberDismissState(
+            confirmValueChange = {
+                isTaskRemoved = true
+                true
             }
-                                           //dismissThreshold
-            )
-
-        var coroutineScope = rememberCoroutineScope()
+        )
         if (isTaskRemoved) {
+            var coroutineScope = rememberCoroutineScope()
             coroutineScope.launch {
                 removeTaskListener.removeTask(task = task)
             }
 
         }
-        var isDismissedToEnd = true
         SwipeToDismiss(state = dismissState, background = {
             setBackGround(dismissState)
-            currentFraction  = dismissState.progress
-            val coroutineScope = rememberCoroutineScope()
-            /*if(dismissState.dismissDirection == DismissDirection.EndToStart && currentFraction<dismissThreshold){
-
-
-                     coroutineScope.launch {
-                         dismissState.reset()
-                         //isDismissedToEnd = false
-                     }
-
-            }
-              if(dismissState.dismissDirection == DismissDirection.StartToEnd){
-                coroutineScope.launch {
-                    dismissState.snapTo(DismissValue.Default)
-                }
-
-            }*/
-        }, directions = setOf(DismissDirection.EndToStart), dismissContent = {
+        }, dismissContent = {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -181,26 +141,16 @@ open class AllFragment: Fragment() {
 
                 CustomCheckBox(isChecked = isChecked, onCheckedChange = {
                     isChecked = !isChecked
-                    isFromDatabase = false
                 })
-                if(isChecked && !isFromDatabase){
-                    coroutineScope.launch { removeTaskListener.updateTaskAsFinished(task = task) }
 
-                }
+
 
                 //Image(painter = painterResource(id = R.drawable.), contentDescription = )
                 Column(modifier = Modifier.padding(start = 15.dp)) {
 
-                    if(task.status == Status.Started)
-                    Text(text = task.taskName, color = Color.Black, fontSize = 15.sp)
-                    else{
-                        Text(text = task.taskName, color = Color.Black, fontSize = 15.sp,
-                            style = TextStyle(textDecoration = TextDecoration.LineThrough))
-                        isChecked = true
-                        isFromDatabase = true
 
-                    }
-                    Text(text = task.taskDate, color = Color.Black, fontSize = 10.sp)
+                    Text(text = task.taskName, color = Color.Black, fontSize = 15.sp)
+                    /*Text(text = task.taskDate, color = Color.Black, fontSize = 10.sp)*/
                 }
             }
 
@@ -208,17 +158,11 @@ open class AllFragment: Fragment() {
         })
     }
 
-    fun formatDate(tasksDate:Date):String{
-        var formatter = SimpleDateFormat("dd-MMM-yyyy")
-        return formatter.format(tasksDate)
-    }
-
     @Composable
     fun CustomCheckBox(isChecked:Boolean,onCheckedChange : (Boolean) -> Unit ){
         Icon(
-             if (isChecked) painterResource(id = R.drawable.baseline_check_circle_24) else
-                painterResource(id = R.drawable.outline_circle_24),
-            "Checked Circle",Modifier.clickable {
+            imageVector = if (isChecked) Icons.Rounded.CheckCircle else Icons.Rounded.AccountCircle,
+            contentDescription = "Checked Circle", modifier =   Modifier.clickable {
                 onCheckedChange(!isChecked)
             }
         )
@@ -232,22 +176,20 @@ open class AllFragment: Fragment() {
     @Composable
     fun setBackGround( dismissState: DismissState){
         var color = when(dismissState.dismissDirection){
-            //DismissDirection.StartToEnd -> Color.Red
-            DismissDirection.EndToStart ->Color.LightGray
+            DismissDirection.StartToEnd -> Color.Red
+            DismissDirection.EndToStart ->Color.Green
             else -> Color.Transparent
         }
-
         val direction = dismissState.dismissDirection
-
         Row(modifier = Modifier
             .fillMaxSize()
             .padding(bottom = 5.dp)
             .background(color = color)) {
-            /*if(direction == DismissDirection.StartToEnd){
+            if(direction == DismissDirection.StartToEnd){
                 Icon( Icons.Filled.Delete, "delete Button" )
-            }*/
-             if(direction == DismissDirection.EndToStart){
-                Icon(Icons.Rounded.Delete,"Reschedule Button")
+            }
+            else if(direction == DismissDirection.EndToStart){
+                Icon(Icons.Rounded.ShoppingCart,"Reschedule Button")
             }
         }
 

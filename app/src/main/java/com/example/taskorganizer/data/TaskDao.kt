@@ -24,14 +24,11 @@ interface TaskDao {
  @Query("SELECT * from tasks WHERE id = :id")
  fun getTaskItem(id:Int):Flow<Task>
 
- @Query("SELECT * from tasks ORDER BY status DESC")
+ @Query("SELECT * from tasks ORDER BY taskName ASC")
  fun getAllTasks():Flow<List<Task>>
 
  @Query("SELECT * from tasks WHERE category == :selectedCategory ")
  fun getSelectedCategoryTasks(selectedCategory: Category):Flow<List<Task>>
-
- @Query("SELECT * from tasks WHERE taskDate == :selectedDate")
- fun getTasksOnSelectedDate(selectedDate:String):Flow<List<Task>>
 
 
 
