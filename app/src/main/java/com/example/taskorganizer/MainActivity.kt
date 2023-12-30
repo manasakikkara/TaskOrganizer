@@ -2,53 +2,42 @@ package com.example.taskorganizer
 
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Bundle
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.BottomAppBar
 
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.internal.enableLiveLiterals
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,31 +48,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import com.example.taskorganizer.data.Task
 import com.example.taskorganizer.databinding.AllFragmentBinding
-import kotlinx.coroutines.CoroutineScope
+import com.example.taskorganizer.signIn.GoogleAuthUIClient
+import com.google.android.gms.auth.api.identity.Identity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity() {
 
- lateinit var viewModel: ActivityViewModel
+    private val viewModel by viewModels<ActivityViewModel>()
  var isFABClicked by mutableStateOf(false)
+    var isLoadingDone by mutableStateOf(false)
+    private val googleAuthUIClient by lazy {
+        GoogleAuthUIClient(applicationContext,Identity.getSignInClient(applicationContext))
+    }
+
+
  var note by mutableStateOf("All")
     var itemSelected by
         mutableStateOf(0)
-    var tasksList:List<Task>?  by mutableStateOf(arrayListOf())
+
     var fullText by
         mutableStateOf("")
     var isFABModifierClicked by mutableStateOf(false)
+    var isTasksClicked by   mutableStateOf(true)
+    var isCalendarClicked by mutableStateOf(false)
+    var isProfileClicked by   mutableStateOf(false)
+
 
 
 
@@ -91,99 +93,106 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        var viewModelFactory = ViewModelProvider.AndroidViewModelFactory.getInstance(application = application)
-        viewModel = viewModelFactory.create(ActivityViewModel::class.java)
+        //var viewModelFactory = ViewModelProvider.AndroidViewModelFactory.getInstance(application = application)
+        //viewModel = viewModelFactory.create(ActivityViewModel::class.java)
 
         setContent {
-
-
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
-                floatingActionButton = {
-                    FloatingActionButton(onClick = {
-
-                      isFABClicked = true
-
-                    },modifier=Modifier.clickable {
-                        //focusRequester.requestFocus()
-                        isFABModifierClicked = true
-
-
-
-                    }, shape = CircleShape) {
-                        Icon(Icons.Filled.Add, "Add Task")
-                    }
+                floatingActionButton =
+                {
+                    if(isTasksClicked || isCalendarClicked){
+                        FloatingActionButton(onClick = {
+                            isFABClicked = true
+                        },modifier=Modifier.clickable {
+                            //focusRequester.requestFocus()
+                            isFABModifierClicked = true
+                        }, shape = CircleShape) {
+                            Icon(Icons.Filled.Add, "Add Task")
+                        }
+                    } else null
                 },
 
                 bottomBar = {
                     BottomAppBar(modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .size(width = 0.dp, height = 50.dp),
 
-                        containerColor = Color.Green,
+                        containerColor = Color.LightGray,
                         content = {
-                            Row(
+                            Row(horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                var isTasksClicked by remember { mutableStateOf(false) }
-                                var isCalendarClicked by remember { mutableStateOf(false) }
-                                var isProfileClicked by remember { mutableStateOf(false) }
-                                var isMenuClicked by remember { mutableStateOf(false) }
 
-                                Row {
+                            ) {
                                     IconButton(
-                                        onClick = { isMenuClicked = !isMenuClicked },
-                                        modifier = Modifier.size(100.dp)
+                                        onClick = {
+                                            isTasksClicked = true
+                                            isCalendarClicked = false
+                                            isProfileClicked = false
+                                            isLoadingDone = false
+                                                  },
+                                        //modifier = Modifier.size(100.dp)
                                     ) {
                                         Icon(
-                                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                            contentDescription = "this is image",
+                                            painter = painterResource(id = R.drawable.ic_home_black_24dp),
+                                            contentDescription = "this is image", modifier = Modifier.size(50.dp),
                                             tint = if (!isTasksClicked) Color.Black else Color.Blue
                                         )
                                     }
                                     IconButton(
-                                        onClick = { isTasksClicked = !isTasksClicked },
-                                        modifier = Modifier.size(100.dp)
+                                        onClick = {
+                                            isCalendarClicked = true
+                                            isProfileClicked = false
+                                            isTasksClicked = false
+                                                  },
+                                        //modifier = Modifier.size(100.dp)
                                     ) {
                                         Icon(
-                                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                            contentDescription = "this is image",
-                                            tint = if (!isTasksClicked) Color.Black else Color.Blue
-                                        )
-                                    }
-                                    IconButton(
-                                        onClick = { isCalendarClicked = !isCalendarClicked },
-                                        modifier = Modifier.size(100.dp)
-                                    ) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                            contentDescription = "this is image",
+                                            painter = painterResource(id = R.drawable.baseline_calendar_month_24),
+                                            contentDescription = "this is image",modifier = Modifier.size(50.dp),
                                             tint = if (!isCalendarClicked) Color.Black else Color.Blue
                                         )
                                     }
                                     IconButton(
-                                        onClick = { isProfileClicked = !isProfileClicked },
-                                        modifier = Modifier.size(100.dp)
+                                        onClick = {
+                                            isProfileClicked = true
+                                            isTasksClicked = false
+                                            isCalendarClicked = false
+                                                  },
+                                        //modifier = Modifier.size(100.dp)
                                     ) {
                                         Icon(
-                                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                            contentDescription = "this is image",
+                                            painter = painterResource(id = R.drawable.baseline_person_24),
+                                            contentDescription = "this is image",modifier = Modifier.size(50.dp),
                                             tint = if (!isProfileClicked) Color.Black else Color.Blue
                                         )
                                     }
-                                }
+
                             }
                         })
 
-                }, content = {  Column {
-                    setHorizontalList()
-                    val coroutineScope = rememberCoroutineScope()
-                    coroutineScope.launch {
-                       getTasksFromViewModel(itemSelected)
+                }, content = {
+                    if(isCalendarClicked){
+                        navigateToCalendarView()
+                    }
+                    if(isProfileClicked){
+                        navigateToMyProfile()
+                    }
+                    Column {
+                    if(isTasksClicked) {
+                        setHorizontalList()
+
+                        val coroutineScope = rememberCoroutineScope()
+                        if (!isLoadingDone) {
+                            val job = coroutineScope.launch {
+                                delay(100)
+                                getTasksFromViewModel(itemSelected)
+                            }
+                        }
+                        LoadFragmentView(list = ArrayList(viewModel.list))
                     }
 
-                    LoadFragmentView(list = ArrayList(tasksList))
                 }
                 if(isFABClicked){
                     val focusRequester  = remember {
@@ -196,35 +205,29 @@ class MainActivity : AppCompatActivity() {
                     showTextField(focusRequester)
 
                 }
-                else{
-                    sendTask()
-
-                }
-
-
     })
         }
     }
+
     @Composable
     fun sendTask(){
-        if(!isFABClicked)
+        Log.i("log","sendTask started")
+
         if(fullText.isNotEmpty()) {
             sendTaskToViewModel(fullText)
             fullText = ""
+            isLoadingDone = false
         }
+        Log.i("log","sendTask ended")
     }
 
     suspend fun getTasksFromViewModel(itemSelected:Int){
         viewModel.getTasksList(
-            applicationContext, itemSelected = itemSelected,
-            updateTaskListener = object : ActivityViewModel.UpdateTaskListener {
-                override fun getTasksList(taskList: List<Task>?) {
-                    tasksList = taskList
+            applicationContext, itemSelected = itemSelected,object:ActivityViewModel.UpdateTaskListener{
+                override fun getTasksList() {
+                    isLoadingDone = true
                 }
 
-                override fun getSelectedCategoryTasksList(taskList: List<Task>?) {
-                    tasksList = taskList
-                }
             })
     }
 
@@ -234,7 +237,8 @@ class MainActivity : AppCompatActivity() {
     fun sendTaskToViewModel(text:String){
          val coroutineScope = rememberCoroutineScope()
          coroutineScope.launch {
-             viewModel.updateTask(text, itemSelected)
+             viewModel.insertTask(text, itemSelected)
+            // getTasksFromViewModel(itemSelected)
          }
     }
 
@@ -242,12 +246,19 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     @Composable
     fun showTextField(focusRequester: FocusRequester){
-        var isIconButtonClicked by remember{
+        var isIconButtonClicked by remember {
             mutableStateOf(false)
         }
+        /*if(isIconButtonClicked){
+            sendTask()
+            isFABClicked = false
+            //isLoading = true
+
+        }*/
         var text by remember {
             mutableStateOf("")
         }
+
             if(isFABClicked) {
                var textField =  TextField(value = text, modifier = Modifier
                    .focusRequester(focusRequester)
@@ -256,8 +267,8 @@ class MainActivity : AppCompatActivity() {
 
                 }, label = {}, trailingIcon = {
                     IconButton(onClick = {
-                        isFABClicked = false
                         isIconButtonClicked = true
+
                         fullText = text
 
                     }) {
@@ -265,6 +276,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 })
             }
+        if(isIconButtonClicked){
+            sendTask()
+            isFABClicked = false
+        }
     }
 
 
@@ -287,6 +302,8 @@ class MainActivity : AppCompatActivity() {
         var isButtonClicked by remember {
             mutableStateOf(false)
         }
+
+
          Button(onClick = {  //isClicked = !isClicked
              isButtonClicked = true
              itemSelected = if(itemSelected != index) index else 0
@@ -301,15 +318,39 @@ class MainActivity : AppCompatActivity() {
         if(isButtonClicked) {
             var coroutineScope = rememberCoroutineScope()
             coroutineScope.launch {
+               // delay(200)
                 getTasksFromViewModel(itemSelected)
+                //isLoadingDone = true
+                isButtonClicked = false
             }
+
         }
+
+
      }
+    @Composable
+    fun navigateToCalendarView(){
+        AndroidViewBinding(AllFragmentBinding::inflate) {
+            supportFragmentManager.beginTransaction().setReorderingAllowed(true)
+                .replace(R.id.fragment_all, CalendarFragment()).commit()
+        }
+        // viewModel.navigateToCalendarActivity(LocalContext.current)
+
+    }
+
+    @Composable
+    fun navigateToMyProfile(){
+        AndroidViewBinding(AllFragmentBinding::inflate) {
+            supportFragmentManager.beginTransaction().setReorderingAllowed(true)
+                .replace(R.id.fragment_all, MyProfileFragment()).commit()
+        }
+    }
 
 
 
     @Composable
     fun LoadFragmentView(list:ArrayList<Task>?){
+        Log.i("log","load fragment started")
         var removeTaskListener = object:ActivityViewModel.RemoveTaskListener{
             override suspend fun removeTask(task: Task) {
                 viewModel.deleteTask(task = task,object:ActivityViewModel.DeleteListener{
@@ -320,11 +361,19 @@ class MainActivity : AppCompatActivity() {
                 })
             }
 
+            override suspend fun updateTaskAsFinished(task: Task) {
+                viewModel.updateTask(task = task,object:ActivityViewModel.UpdateListener{
+                    override suspend fun onTaskUpdated() {
+                         getTasksFromViewModel(itemSelected)
+
+                    }
+
+                })
+            }
+
         }
             var instance:Fragment = AllFragment()
-
             var bundle = Bundle()
-
             when (itemSelected) {
                 0 ->
                 {
@@ -349,12 +398,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
             }
-
             bundle.putParcelableArrayList("tasksList",list)
             instance.arguments  = bundle
-
             AndroidViewBinding(AllFragmentBinding::inflate) {
-                // val allFragment = fragmentAll.getFragment<AllFragment>()
                 supportFragmentManager.beginTransaction().setReorderingAllowed(true)
                     .replace(R.id.fragment_all, instance).commit()
             }
@@ -368,63 +414,6 @@ class MainActivity : AppCompatActivity() {
      var isCalendarClicked by remember { mutableStateOf(false) }
      var isProfileClicked by remember { mutableStateOf(false) }
      var isMenuClicked by remember { mutableStateOf(false) }
-     //Box(modifier = Modifier.fillMaxSize()) {
-
-         /*NavigationBar(modifier = Modifier
-             .fillMaxHeight()
-             .fillMaxWidth(0.4f), containerColor = Color.Blue) {
-             Column(modifier = Modifier
-                 .fillMaxHeight()
-                 .fillMaxWidth(0.4f)){
-                 Column(){
-
-                     IconButton(
-                         onClick = {  },
-                         modifier = Modifier.size(100.dp),
-
-
-                     ) {
-                         Icon(
-                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                             contentDescription = "this is image",
-
-                             )
-                     }
-                     IconButton(
-                         onClick = {  },
-                         modifier = Modifier.size(100.dp)
-                     ) {
-                         Icon(
-                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                             contentDescription = "this is image",
-
-                             )
-                     }
-                     IconButton(
-                         onClick = {  },
-                         modifier = Modifier.size(100.dp)
-                     ) {
-                         Icon(
-                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                             contentDescription = "this is image",
-
-                             )
-                     }
-                     IconButton(
-                         onClick = {  },
-                         modifier = Modifier.size(100.dp)
-                     ) {
-                         Icon(
-                             painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                             contentDescription = "this is image",
-
-                             )
-                     }
-                 }
-             }
-         }*/
-
-
          BottomAppBar(modifier = Modifier
              .fillMaxWidth()
              /*.align(alignment = Alignment.BottomEnd)*/, containerColor = Color.Green, content = {
@@ -433,10 +422,6 @@ class MainActivity : AppCompatActivity() {
                  horizontalArrangement = Arrangement.SpaceEvenly,
                  verticalAlignment = Alignment.CenterVertically
              ) {
-
-
-
-
                  Row {
                      IconButton(
                          onClick = { isMenuClicked = !isMenuClicked },
@@ -481,8 +466,6 @@ class MainActivity : AppCompatActivity() {
                  }
              }
          })
-
-
  }
 
     @Preview
