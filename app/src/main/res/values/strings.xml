@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">Task Organizer</string>
+    <string name="default_web_client_Id">172044848534-68smv83td7h4lf60gc28go5fh46mc3cc.apps.googleusercontent.com</string>
+    <string name="title_activity_main2">MainActivity2</string>
+    <string name="title_home">Home</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="title_activity_calendar">CalendarActivity</string>
+    <string name="title_activity_main3">MainActivity3</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_my_profile">MyProfile</string>
+</resources>
