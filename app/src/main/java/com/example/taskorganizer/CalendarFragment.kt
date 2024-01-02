@@ -44,7 +44,6 @@ class CalendarFragment: Fragment() {
                  }
              }
          }
-
     }
 
     @SuppressLint("CoroutineCreationDuringComposition")
