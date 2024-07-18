@@ -76,6 +76,8 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui-ktx:2.5.2'
     implementation "androidx.compose.ui:ui-viewbinding:1.2.1"
     implementation platform('androidx.compose:compose-bom:2023.03.00')
+    implementation platform('androidx.compose:compose-bom:2023.03.00')
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.03.00')
     androidTestImplementation platform('androidx.compose:compose-bom:2023.03.00')
     //NavController
     def nav_version = "2.7.5"
@@ -93,6 +95,10 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.2"
     implementation "androidx.navigation:navigation-compose:2.7.5"
     implementation "io.coil-kt:coil-compose:2.2.2"
+    //For Splash Screen
+    implementation "androidx.core:core-splashscreen:1.0.1"
+    // for Notifications
+    implementation 'com.google.accompanist:accompanist-permissions:0.31.1-alpha'
 
     implementation platform('androidx.compose:compose-bom:2022.10.00')
     implementation platform('androidx.compose:compose-bom:2022.10.00')

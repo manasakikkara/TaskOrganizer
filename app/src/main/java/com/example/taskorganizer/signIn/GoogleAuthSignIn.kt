@@ -86,7 +86,7 @@ class GoogleAuthUIClient( val context: Context,val oneTapClient:SignInClient) {
         }
     }
 
-    suspend fun getSignedInUser(): UserData? {
+     fun getSignedInUser(): UserData? {
          return auth.currentUser?.run{
              UserData(userId = uid, userName = displayName, profilePic = photoUrl.toString())
         }

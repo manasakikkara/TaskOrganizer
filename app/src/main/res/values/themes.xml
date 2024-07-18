@@ -2,4 +2,12 @@
 <resources>
 
     <style name="Theme.TaskOrganizer" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MySplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/purple40</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/todoicon</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="postSplashScreenTheme">@style/Theme.AppCompat</item>
+    </style>
+
 </resources>

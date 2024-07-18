@@ -14,6 +14,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -25,11 +26,15 @@ import androidx.fragment.app.viewModels
 import com.example.taskorganizer.data.Task
 import com.example.taskorganizer.databinding.AllFragmentBinding
 import kotlinx.coroutines.launch
+import java.util.Date
 
 class CalendarFragment: Fragment() {
 
     private val viewModel:ActivityViewModel by viewModels(::requireActivity)
     var isLoadingDone by mutableStateOf(false)
+    var date by
+        mutableStateOf(Date().toString())
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -57,11 +62,12 @@ class CalendarFragment: Fragment() {
             title =
             null
             , headline = null, showModeToggle = false)
-        viewModel.convertMillisToDate(datePickerState.selectedDateMillis)
+
         var coroutineScope = rememberCoroutineScope()
+        date = viewModel.convertMillisToDate(datePickerState.selectedDateMillis)
 
         coroutineScope.launch {
-            getTasksOnDateSelected()
+            getTasksOnDateSelected(date)
 
         }
     }
@@ -73,7 +79,7 @@ class CalendarFragment: Fragment() {
             override suspend fun removeTask(task: Task) {
                 viewModel.deleteTask(task = task, object : ActivityViewModel.DeleteListener {
                     override suspend fun onTaskDeleted() {
-                        getTasksOnDateSelected()
+                        getTasksOnDateSelected(date = date)
                     }
 
                 })
@@ -82,7 +88,7 @@ class CalendarFragment: Fragment() {
             override suspend fun updateTaskAsFinished(task: Task) {
                 viewModel.updateTask(task = task, object : ActivityViewModel.UpdateListener {
                     override suspend fun onTaskUpdated() {
-                        getTasksOnDateSelected()
+                        getTasksOnDateSelected(date)
 
                     }
 
@@ -103,14 +109,14 @@ class CalendarFragment: Fragment() {
 
     }
 
-    private suspend fun getTasksOnDateSelected() {
+    private suspend fun getTasksOnDateSelected(date:String) {
         viewModel.getTasksOfTheDateSelected(
             tasksListListener = object : ActivityViewModel.TasksListListener {
                 override fun onTasksDone() {
                     isLoadingDone = true
                 }
 
-            })
+            },date)
     }
 
 

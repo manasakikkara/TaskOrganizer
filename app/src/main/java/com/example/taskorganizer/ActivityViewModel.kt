@@ -2,7 +2,10 @@ package com.example.taskorganizer
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.taskorganizer.signIn.SignInResult
 import com.example.taskorganizer.signIn.SignInState
@@ -33,10 +36,24 @@ class ActivityViewModel: ViewModel() {
     //creating another value which is publicly available since
    // we dont want to expose mutablestateObjects to UI
     val state = _state.asStateFlow()
+    private val _signInResult = MutableStateFlow(SignInResult(null,null))
+    val result = _signInResult.asStateFlow()
+    private val _totalCount = MutableStateFlow(0)
+    val totalCount = _totalCount.asStateFlow()
+    private val _totalFinished = MutableStateFlow(0)
+    val totalFinished = _totalFinished.asStateFlow()
+    //private val _totalCategoryTasks = MutableStateFlow(0)
+    //val totalCategoryTasks = _totalCategoryTasks.asStateFlow()
+    var totalWorkTasks by mutableStateOf(0)
+     var totalBirthdayTasks by mutableStateOf(0)
+    var totalPersonalTasks by mutableStateOf(0)
+    var totalWishlistTasks by mutableStateOf(0)
 
     fun onSignInResult(signInResult: SignInResult){
         _state.update { it.copy(isSuccessFull = signInResult.data!=null,
             signInError = signInResult.errormsg) }
+        if(signInResult.data!= null)
+            _signInResult.update { it.copy(signInResult.data,signInResult.errormsg) }
 
     }
 
@@ -46,13 +63,36 @@ class ActivityViewModel: ViewModel() {
         }
     }
 
+    suspend fun getTotalTasks(){
+        _totalCount.update { taskRepository.getTotalTasks() }
+    }
+
+    suspend fun getTotalFinishedTasks(){
+        _totalFinished.update {  taskRepository.getTotalFinishedTasks(Status.Completed)}
+    }
+
+     suspend fun getTasksCountOnSelectedCategory(){
+         //_totalCategoryTasks.update { taskRepository.getTasksCountOnSelectedCategory(selectedCategory) }
+         totalWorkTasks = taskRepository.getTasksCountOnSelectedCategory(Category.Work)
+         totalBirthdayTasks = taskRepository.getTasksCountOnSelectedCategory(Category.Birthday)
+         totalPersonalTasks = taskRepository.getTasksCountOnSelectedCategory(Category.Personal)
+         totalWishlistTasks = taskRepository.getTasksCountOnSelectedCategory(Category.WishList)
+     }
 
 
 
 
-     suspend fun insertTask(text:String, category:Int){
+
+
+
+     suspend fun insertTask(text: String, category: Int, selectedSheetCategory: Category){
+
          selectedCategory = setCategory(category)
-        var task = Task(0,text, date,Status.Started,selectedCategory)
+         if(selectedSheetCategory != Category.All) {
+              selectedCategory = selectedSheetCategory
+         }
+         var task = Task(0, text, date, Status.Started, selectedCategory)
+
          taskRepository.insertTaskItem(task)
     }
 
@@ -90,24 +130,13 @@ class ActivityViewModel: ViewModel() {
 
     }
 
-
-
-    fun navigateToMyProfileScreen(context: Context){
-        //context.startActivity(Intent(context,MyProfile::class.java))
-    }
-
     suspend fun deleteTask(task: Task,deleteListener:DeleteListener){
         taskRepository.deleteTaskItem(task = task)
         deleteListener.onTaskDeleted()
 
     }
 
-    suspend fun updateTask(task: Task,updateListener: UpdateListener){
-        task.status = Status.Completed
-        taskRepository.updateTaskItem(task = task)
-        updateListener.onTaskUpdated()
 
-    }
 
     private fun setCategory(category: Int):Category{
        return  when(category){
@@ -122,16 +151,34 @@ class ActivityViewModel: ViewModel() {
        }
     }
 
-    fun convertMillisToDate(millis:Long?){
+    suspend fun updateTask(task: Task,updateListener: UpdateListener){
+        task.status = Status.Completed
+        taskRepository.updateTaskItem(task = task)
+        updateListener.onTaskUpdated()
+    }
+
+    fun convertMillisToDate(millis:Long?):String{
 
         millis?.let{
             var calendar = Calendar.getInstance()
             calendar.timeInMillis = millis + 86400000
             date = formatter.format(calendar.time)
         }
+        return date
     }
 
-    suspend fun getTasksOfTheDateSelected(tasksListListener: TasksListListener){
+    fun convertMillisToDay(millis: Long?):Int{
+        var day  = 0
+        millis?.let{
+            var calendar = Calendar.getInstance()
+            calendar.timeInMillis = millis + 86400000
+            date = formatter.format(calendar.time)
+             day = calendar.get(Calendar.DAY_OF_MONTH)
+        }
+        return day
+    }
+
+    suspend fun getTasksOfTheDateSelected(tasksListListener: TasksListListener,date: String){
         var tasksList:List<Task>
         tasksList = taskRepository.getTasksOnSelectedDate(date).first()
         _list.clear()
@@ -167,6 +214,12 @@ class ActivityViewModel: ViewModel() {
 
     interface UpdateListener{
         suspend fun onTaskUpdated()
+    }
+
+    interface TaskStatusListener {
+
+         fun getTotalTasks(totalTasks:Int)
+         fun getTotalFinishedTasks(totalFinishedTasks:Int)
     }
 }
 

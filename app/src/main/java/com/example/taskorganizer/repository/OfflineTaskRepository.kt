@@ -1,6 +1,7 @@
 package com.example.taskorganizer.repository
 
 import com.example.taskorganizer.data.Category
+import com.example.taskorganizer.data.Status
 import com.example.taskorganizer.data.Task
 import com.example.taskorganizer.data.TaskDao
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +34,15 @@ class OfflineTaskRepository(var taskDao: TaskDao):TaskRepository {
     override suspend fun getTasksOnSelectedDate(selectedDate: String): Flow<List<Task>>
         = taskDao.getTasksOnSelectedDate(selectedDate)
 
+    override suspend fun getTotalFinishedTasks(selectedStatus:Status): Int
+        = taskDao.getTotalFinishedTasks(selectedStatus)
+
+
+    override suspend fun getTotalTasks(): Int
+       =  taskDao.getTotalTasks()
+
+    override suspend fun getTasksCountOnSelectedCategory(selectedCategory: Category): Int
+         = taskDao.getTasksCountOnSelectedCategory(selectedCategory)
 
 
 }

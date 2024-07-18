@@ -1,9 +1,9 @@
 package com.example.taskorganizer.repository
 
 import com.example.taskorganizer.data.Category
+import com.example.taskorganizer.data.Status
 import com.example.taskorganizer.data.Task
 import kotlinx.coroutines.flow.Flow
-import java.util.Date
 
 interface TaskRepository {
 
@@ -20,4 +20,10 @@ suspend fun updateTaskItem(task: Task)
 suspend fun getSelectedCategoryTasks(selectedCategory: Category):Flow<List<Task>>
 
 suspend fun getTasksOnSelectedDate(selectedDate: String):Flow<List<Task>>
+
+suspend fun getTotalFinishedTasks(selectedStatus:Status):Int
+
+suspend fun getTotalTasks():Int
+
+suspend fun getTasksCountOnSelectedCategory(selectedCategory:Category):Int
 }

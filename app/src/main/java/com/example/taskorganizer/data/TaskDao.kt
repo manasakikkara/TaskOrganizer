@@ -34,6 +34,16 @@ interface TaskDao {
  fun getTasksOnSelectedDate(selectedDate:String):Flow<List<Task>>
 
 
+ @Query("SELECT COUNT(id) from  tasks")
+ fun getTotalTasks():Int
+
+ @Query("SELECT COUNT(id) from tasks WHERE status == :selectedStatus")
+ fun getTotalFinishedTasks(selectedStatus: Status):Int
+
+ @Query("SELECT COUNT(id) from tasks WHERE category == :selectedCategory")
+ fun getTasksCountOnSelectedCategory(selectedCategory:Category):Int
+
+
 
 
 }
